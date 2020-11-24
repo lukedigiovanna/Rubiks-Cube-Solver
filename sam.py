@@ -32,7 +32,7 @@ add_img('edges',edges)
 gaussianThresh = cv2.adaptiveThreshold(edges, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
 add_img('gaussian', gaussianThresh)
 
-invert = 255 - gaussianThresh
+invert = 255 - gaussianThresh                
 print(invert)
 add_img('invert',invert)
 
