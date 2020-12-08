@@ -16,13 +16,14 @@ def add_img(title, img):
 def get_sift(inimg):
    # gray = cv2.cvtColor(inimg,cv2.COLOR_BGR2GRAY)
     #i = inimg
-    sift = cv2.SIFT_create()
-    kp = sift.detect(inimg,None)
-    return cv2.drawKeypoints(inimg, kp, inimg,flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    return inimg
+    # sift = cv2.SIFT_create()
+    # kp = sift.detect(inimg,None)
+    # return cv2.drawKeypoints(inimg, kp, inimg,flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
-img = cv2.imread("rubiks/rub0.JPG", 0)
-rescale = 0.2
-dim = (int(img.shape[1] * rescale),int(img.shape[0] * rescale))
+img = cv2.imread("rubiks_cropped/rub0.png", 0)
+width = 720
+dim = (width,int(img.shape[1]/img.shape[0] * width))
 img = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
 add_img('original',img)
 

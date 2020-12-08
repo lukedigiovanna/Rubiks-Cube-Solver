@@ -14,7 +14,7 @@ def add_img(title, img):
     plt.xticks([]), plt.yticks([])
     index+=1
 
-img = cv2.imread("rubiks3/rub2.JPG")
+img = cv2.imread("rubiks_cropped/rub0.png")
 target_width = 760
 aspect_ratio = img.shape[1]/img.shape[0] # w/h
 dim = (int(target_width),int(target_width/aspect_ratio))
@@ -44,11 +44,13 @@ add_img('noise removed', nonoise)
 contours, hierarchy  = cv2.findContours(invert, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 test = cv2.drawContours(color, contours, -1, (0,200,255), 9)
 add_img('contours',test)
+cv2.imwrite('contours1.png',test)
 
 corners = cv2.goodFeaturesToTrack(nonoise, 10, 0.5, 50)
 
 corner_squares = []
 # isolate the best four corners (make the biggest square)
+"""
 for corner1 in corners:
     for corner2 in corners:
         for corner3 in corners:
@@ -86,10 +88,11 @@ for square in corner_squares:
     for c in square:
         x, y = c.ravel()
         cv2.circle(img,(x,y),10,col,-1)
-
-# for corner in corners:
-#     x,y = corner.ravel()
-#     cv2.circle(img,(x,y),10,(36,255,12),-1)
+"""
+for corner in corners:
+    x,y = corner.ravel()
+    cv2.circle(img,(x,y),10,(36,255,12),-1)
 add_img('corners',img)
+cv2.imwrite('corners1.png',img)
 
 plt.show()
