@@ -1,0 +1,26 @@
+<annotation>
+	<folder>images</folder>
+	<filename>197.JPG</filename>
+	<path>C:\Users\luked\Documents\Sr Research\Rubiks Cube Object Detection\fulldataset\images\197.JPG</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>3024</width>
+		<height>4032</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>rubiks</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>912</xmin>
+			<ymin>938</ymin>
+			<xmax>2390</xmax>
+			<ymax>2664</ymax>
+		</bndbox>
+	</object>
+</annotation>
