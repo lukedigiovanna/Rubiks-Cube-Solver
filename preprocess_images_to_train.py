@@ -12,7 +12,7 @@ IMAGE_DIRECTORY = os.path.join(EXECUTION_DIRECTORY,IMAGE_DIRECTORY_NAME)
 
 NUM_IMAGES = 5
 
-CONFIDENCE_THRESHOLD = 0.6
+CONFIDENCE_THRESHOLD = 0.0
 
 # helper function to return the maximum index in the given array
 def max_index(inlist):
@@ -29,14 +29,16 @@ def has_confidence(inlist):
         if val > CONFIDENCE_THRESHOLD:
             return True
     return False
+# predicts the color label of a mean color using raw rgb color model
 def predict_using_raw_rgb(mean):
-    predicted = color_model.predict([[mean_val[0],mean_val[1],mean_val[2]]]).tolist()
+    predicted = color_model.predict([[mean_val[0]/255,mean_val[1]/255,mean_val[2]/255]]).tolist()
     max_ind = max_index(predicted[0])
     color_label = color_labels[max_ind]
     color = color_values[max_ind]
     confidence = predicted[0][max_ind]
     return color_label, color, confidence
-
+# predicts the color label of a mean color using ratios of red green and blue color model
+# this model is recommended over the RGB model as it is more accurate
 def predict_using_ratios(mean):
     rg = mean[2]/mean[1]
     rb = mean[2]/mean[0]
