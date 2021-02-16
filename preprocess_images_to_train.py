@@ -1,7 +1,6 @@
 import os
 import cv2
 import numpy as np
-import sys
 import math
 import keras
 
@@ -84,15 +83,17 @@ for i in range(NUM_IMAGES):
     dim = (int(target_width),int(target_width/aspect_ratio))
     image = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
 
-    yuv_image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+    # yuv_image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
     
-    yuv_image[:,:,0] = cv2.equalizeHist(yuv_image[:,:,0])
-    yuvrgb_image = cv2.cvtColor(yuv_image,cv2.COLOR_YUV2BGR)
-    yuvrgb_image = image.copy()
+    # yuv_image[:,:,0] = cv2.equalizeHist(yuv_image[:,:,0])
+    # yuvrgb_image = cv2.cvtColor(yuv_image,cv2.COLOR_YUV2BGR)
+    # yuvrgb_image = image.copy()
 
-    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"1yuv.jpg"),yuvrgb_image)
+    yuv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    image_gray = cv2.cvtColor(yuvrgb_image, cv2.COLOR_BGR2GRAY)
+    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"1yuv.jpg"),yuv_image)
+
+    image_gray = cv2.cvtColor(yuv_image, cv2.COLOR_BGR2GRAY)
     thresh = cv2.adaptiveThreshold(image_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 19, 2)
     thresh_inverted = 255 - thresh
 
@@ -114,7 +115,7 @@ for i in range(NUM_IMAGES):
 
     no_area = image.copy()
     no_area_blank = image.copy()
-    no_area_blank[:,:] = [255,255,255]
+    # no_area_blank[:,:] = [255,255,255]
     not_square = image.copy()
     not_color = image.copy()
     all_boxes = image.copy()
@@ -145,7 +146,7 @@ for i in range(NUM_IMAGES):
         rect_area = s1 * s2
         ratio = math.sqrt(s1/s2)
         cv2.drawContours(all_boxes,[box],0,(0,255,0),3)
-        if cv2.contourArea(cnt) > 1250 and cv2.contourArea(cnt) < 25000:
+        if cv2.contourArea(cnt) > 1250 and cv2.contourArea(cnt) < 35000:
             cv2.drawContours(no_area,[box],0,(0,255,0),3)
             center = (int(cx),int(cy))
             centers.append(center)
@@ -183,7 +184,6 @@ for i in range(NUM_IMAGES):
     for j in range(min(9,len(distances))):
         c = distances[j][1]
         cv2.circle(no_area_blank, c, 5, (255,0,255), 5)
-    
     
     # mode_setting = (areas, 2500)
     # mode_setting = (aspect_ratios, 0.05)
@@ -245,3 +245,14 @@ for i in range(NUM_IMAGES):
     print("Finished "+str(i+1)+"/"+str(NUM_IMAGES), str((i+1)/NUM_IMAGES*100))
     
     cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"out/"+str(i)+".jpg"), out)
+
+"""
+[r, g, r]
+[g, b, w]
+[b, b, b]
+
+
+center = face[1][1]
+
+
+"""
