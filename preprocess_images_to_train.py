@@ -3,10 +3,11 @@ import cv2
 import numpy as np
 import math
 import keras
+import random
 
 EXECUTION_DIRECTORY = os.getcwd()
 
-IMAGE_DIRECTORY_NAME = "rubiks very simple"
+IMAGE_DIRECTORY_NAME = "all rubiks images/simple_rubiks"
 IMAGE_DIRECTORY = os.path.join(EXECUTION_DIRECTORY,IMAGE_DIRECTORY_NAME)
 
 NUM_IMAGES = 6
@@ -54,15 +55,32 @@ def combinations(inlist):
     sets = []
     for i in range(len(inlist)-2):
         for j in range(i+1,len(inlist)-1):
-            set = (inlist[i],inlist[j],inlist[j+1])
-            sets.append(set)
+            for k in range(j+1,len(inlist)):
+                set = (inlist[i],inlist[j],inlist[k])
+                sets.append(set)
     return sets
 # determined if a set of 3 points are collinear or not
 SLOPE_THRESHOLD = 0.1
 def is_collinear(set):
-    slope1 = (set[0][1] - set[1][1])/(set[0][0] - set[1][0])
-    slope2 = (set[0][1] - set[2][1])/(set[0][0] - set[2][0])
-    return abs(slope1 - slope2) < SLOPE_THRESHOLD
+    dy = set[0][1] - set[1][1]
+    dx = set[0][0] - set[1][0]
+    if dx != 0:
+        slope1 = dy/dx
+    else:
+        slope1 = 999
+    dy = set[0][1] - set[2][1]
+    dx = set[0][0] - set[2][0]
+    if dx != 0:
+        slope2 = dy/dx
+    else:
+        slope2 = 999
+    dy = set[1][1] - set[2][1]
+    dx = set[1][0] - set[2][0]
+    if dx != 0:
+        slope3 = dy/dx
+    else:
+        slope3 = 999
+    return abs(max(slope1, slope2, slope3) - min(slope1, slope2, slope3)) < SLOPE_THRESHOLD
 
 # load color classification model
 color_model = keras.models.load_model(os.path.join(EXECUTION_DIRECTORY,"colorclassification.h5"))
@@ -91,31 +109,25 @@ for i in range(NUM_IMAGES):
 
     yuv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"1yuv.jpg"),yuv_image)
-
     image_gray = cv2.cvtColor(yuv_image, cv2.COLOR_BGR2GRAY)
     thresh = cv2.adaptiveThreshold(image_gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 19, 2)
     thresh_inverted = 255 - thresh
-
-    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"2invthresh.jpg"),thresh_inverted)
 
     eroded = cv2.erode(thresh_inverted, erosion_kernel)
     dilated = cv2.dilate(eroded,dilation_kernel)
     
     blur = cv2.GaussianBlur(dilated, (17,17), 0)
 
-    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"3erodilblur.jpg"),blur)
-
     # edges = cv2.Canny(dilated, 0, 255)
     contours, hierarchy = cv2.findContours(blur, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     contour_image = image.copy()
     cv2.drawContours(contour_image,contours,-1,(0,255,0),3)
-    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"4contours.jpg"),contour_image)
 
     no_area = image.copy()
     no_area_blank = image.copy()
     # no_area_blank[:,:] = [255,255,255]
+    output = np.zeros([300,300,3],np.uint8)
     not_square = image.copy()
     not_color = image.copy()
     all_boxes = image.copy()
@@ -144,15 +156,15 @@ for i in range(NUM_IMAGES):
         s1 = math.sqrt(dx1 ** 2 + dy1 ** 2)
         s2 = math.sqrt(dx2 ** 2 + dy2 ** 2)
         rect_area = s1 * s2
-        ratio = math.sqrt(s1/s2)
+        ratio = s1/s2
         cv2.drawContours(all_boxes,[box],0,(0,255,0),3)
         if cv2.contourArea(cnt) > 1250 and cv2.contourArea(cnt) < 35000:
             cv2.drawContours(no_area,[box],0,(0,255,0),3)
             center = (int(cx),int(cy))
-            centers.append(center)
+            # centers.append((center,cnt))
             # cv2.drawContours(no_area_blank,[box],0,(0,255,0),3)
             cv2.circle(no_area_blank, center, 3, (255,0,0), 3)
-            if abs(ratio - 1) < 1000.3:
+            if abs(ratio - 1) < 0.1:
                 cv2.drawContours(not_square,[box],0,(0,255,0), 3)
                 mask = np.zeros(image_gray.shape,np.uint8)
                 cv2.drawContours(mask, [cnt], 0, 255, -1)
@@ -166,55 +178,106 @@ for i in range(NUM_IMAGES):
                     # areas.append(rect_area)
                     areas.append(cv2.contourArea(cnt))
                     aspect_ratios.append(ratio)
+
+    # collinearity determinations
     ax /= len(contours)
     ay /= len(contours)
     cv2.circle(no_area_blank, (int(ax), int(ay)), 5, (0,0,255), 5)
-    distances = []
-    for center in centers:
-        distance = 0
-        for center2 in centers:
-            if center is center2:
-                continue
-            cv2.line(no_area_blank, center, center2, (0,255,0), 2)
-            dx = center[0] - center2[0]
-            dy = center[1] - center2[1]
-            distance += dx ** 2 + dy ** 2
-        distances.append((distance,center))
-    distances = sorted(distances, key=lambda a: a[0])
-    for j in range(min(9,len(distances))):
-        c = distances[j][1]
-        cv2.circle(no_area_blank, c, 5, (255,0,255), 5)
-    
-    # mode_setting = (areas, 2500)
-    # mode_setting = (aspect_ratios, 0.05)
-    # # calculate the floating point mode of the areas
-    # epsilon = mode_setting[1] # the range of values accepted within a mode count
-    # mode_list = mode_setting[0]
-    # counts = []
-    # for a in mode_list:
-    #     for j, (b, c) in enumerate(counts):
-    #         if -epsilon <= a - b <= epsilon:
-    #             counts[j] = (b, c + 1)
-    #             break
-    #     else:
-    #         counts.append((a,1))
-    # possible_modes = sorted(counts,key=lambda ab: (ab[1],ab[0]))
-    # possible_modes.reverse()
-    # print(possible_modes)
-    # # for possible_mode in possible_modes:
-    # mode = -1
-    # if len(possible_modes) > 0:
-    #     mode = possible_modes[0][0]
+    centers_only = []
+    for c in centers:
+        centers_only.append(c[0])
+    three_combinations = combinations(centers_only)
+    print(len(three_combinations))
+    for combination in three_combinations:
+        if is_collinear(combination):
+            color = (random.randint(0,255),random.randint(0,255),random.randint(0,255))
+            for j in range(2):
+                cv2.line(no_area_blank, combination[j], combination[j+1], color, 3)
+            # for center in combination:
+            #     cv2.circle(no_area_blank, center, 3, color, 20)
+    # distances = []
+    # for pair in centers:
+    #     center = pair[0]
+    #     distance = 0
+    #     min_val = 999999
+    #     min_center = None
+    #     for pair2 in centers:
+    #         if pair is pair2:
+    #             continue
+    #         center2 = pair2[0]
+    #         # cv2.line(no_area_blank, center, center2, (0,255,0), 2)
+    #         dx = center[0] - center2[0]
+    #         dy = center[1] - center2[1]
+    #         distance = math.sqrt(dx ** 2 + dy ** 2)
+    #         if distance < min_val:
+    #             min_val = distance
+    #             min_center = center2
+    #     # cv2.line(no_area_blank, center, min_center, (0, 255, 0), 3)
+    #     distances.append((min_val,pair))
+    # distances = sorted(distances, key=lambda a: a[0])
+    # median_closest = distances[int(len(distances)/2)][0]
+    # for j in range(len(distances)):
+    #     d = distances[j][0]
+    #     if (abs(d - median_closest) < 0.05 * median_closest):
+    #         c = distances[j][1][0]
+    #         cv2.circle(no_area_blank, c, 5, (255,0,255), 5)
 
-    # mode_image = image.copy()
-    # mode_contours = []
-    # for j, cnt in enumerate(good_contours):
-    #     if abs(mode_list[j] - mode) <= epsilon:
-    #         mode_contours.append(cnt)
-    #         rect = cv2.minAreaRect(cnt)
-    #         box = cv2.boxPoints(rect)
-    #         box = np.int0(box)  
-    #         cv2.drawContours(mode_image, [box], 0, (0,255,0),3)
+
+    mode_setting = (areas, 3500)
+    # mode_setting = (aspect_ratios, 0.05)
+    # calculate the floating point mode of the areas
+    epsilon = mode_setting[1] # the range of values accepted within a mode count
+    mode_list = mode_setting[0]
+    counts = []
+    for a in mode_list:
+        for j, (b, c) in enumerate(counts):
+            if -epsilon <= a - b <= epsilon:
+                counts[j] = (b, c + 1)
+                break
+        else:
+            counts.append((a,1))
+    possible_modes = sorted(counts,key=lambda ab: (ab[1],ab[0]))
+    possible_modes.reverse()
+    print(possible_modes)
+    # for possible_mode in possible_modes:
+    mode = -1
+    if len(possible_modes) > 0:
+        mode = possible_modes[0][0]
+
+    mode_image = image.copy()
+    mode_contours = []
+    for j, cnt in enumerate(good_contours):
+        if abs(mode_list[j] - mode) <= epsilon:
+            mode_contours.append(cnt)
+            rect = cv2.minAreaRect(cnt)
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)  
+            mask = np.zeros(image_gray.shape,np.uint8)
+            cv2.drawContours(mask, [cnt], 0, 255, -1)
+            mean_val = cv2.mean(image,mask=mask)
+            ratio_color_label, ratio_color, ratio_confidence = predict_using_ratios(mean_val)
+            cv2.drawContours(mode_image, [box], 0, (0,255,0),3)
+    # sort centers based on y position in order to find rows
+    centers = []
+    for cnt in mode_contours:
+        center, radius = cv2.minEnclosingCircle(cnt)
+        centers.append((center, cnt))
+    centers = sorted(centers,key=lambda ab: ab[0][1])
+    if len(centers) >= 9:
+        row1 = sorted((centers[0],centers[1],centers[2]), key=lambda ab: ab[0][0])
+        row2 = sorted((centers[3],centers[4],centers[5]), key=lambda ab: ab[0][0])
+        row3 = sorted((centers[6],centers[7],centers[8]), key=lambda ab: ab[0][0])
+        rows = [row1,row2,row3]
+        for j in range(3):
+            r = rows[j]
+            for k in range(3):
+                cnt = r[k][1]
+                mask = np.zeros(image_gray.shape,np.uint8)
+                cv2.drawContours(mask, [cnt], 0, 255, -1)
+                mean_val = cv2.mean(image,mask=mask)
+                ratio_color_label, ratio_color, ratio_confidence = predict_using_ratios(mean_val)
+                cv2.rectangle(output,(k*100,j*100),(k*100+100,j*100+100), ratio_color, -1)
+                cv2.rectangle(output,(k*100,j*100),(k*100+100,j*100+100), (0,0,0), 5)
 
     # sets = combinations(good_contours)
     # collinear_contours = []
@@ -233,18 +296,24 @@ for i in range(NUM_IMAGES):
     #     center = (x, y)
     #     cv2.circle(not_color, (int(x),int(y)), 1, (255,0,0), 5)
 
-    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"5contoursquares.jpg"),all_boxes)
-    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"6contoursquaresnoarea.jpg"),no_area)
-    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"6contoursquaresnoareablank.jpg"),no_area_blank)
+    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"0input.jpg"),image)
+    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"1yuv.jpg"),yuv_image)
+    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"2invthresh.jpg"),thresh_inverted)
+    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"3erodilblur.jpg"),blur)
+    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"4contours.jpg"),contour_image)
+    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"5contoursquares.jpg"),all_boxes)
+    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"6contoursquaresnoarea.jpg"),no_area)
+    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"6contoursquaresnoareablank.jpg"),no_area_blank)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"7contoursquaresnosquare.jpg"),not_square)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"8contoursquaresnocolor.jpg"),not_color)
-    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"9contoursquaresmode.jpg"),mode_image)
+    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"6contoursquaresmode.jpg"),mode_image)
+    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"7 output.jpg"),output)
 
     out = image
 
     print("Finished "+str(i+1)+"/"+str(NUM_IMAGES), str((i+1)/NUM_IMAGES*100))
     
-    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"out/"+str(i)+".jpg"), out)
+    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"out/"+str(i)+".jpg"), output)
 
 """
 [r, g, r]
