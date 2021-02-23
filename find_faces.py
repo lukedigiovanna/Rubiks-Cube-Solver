@@ -147,8 +147,6 @@ for i in range(NUM_IMAGES):
         p4 = box[3]
         cx = (p1[0] + p2[0] + p3[0] + p4[0])/4.0
         cy = (p1[1] + p2[1] + p3[1] + p4[1])/4.0
-        ax += cx
-        ay += cy
         dx1 = p2[0]-p1[0]
         dy1 = p2[1]-p1[1]
         dx2 = p3[0]-p2[0]
@@ -174,14 +172,16 @@ for i in range(NUM_IMAGES):
                 print("RAW", raw_color_label, raw_confidence, "RATIO", ratio_color_label, ratio_confidence)
                 if ratio_confidence > CONFIDENCE_THRESHOLD:
                     cv2.drawContours(not_color, [box], 0, (0,255,0), 3)
+                    ax += cx
+                    ay += cy
                     good_contours.append(cnt)
                     # areas.append(rect_area)
                     areas.append(cv2.contourArea(cnt))
                     aspect_ratios.append(ratio)
 
     # collinearity determinations
-    ax /= len(contours)
-    ay /= len(contours)
+    ax /= len(good_contours)
+    ay /= len(good_contours)
     cv2.circle(no_area_blank, (int(ax), int(ay)), 5, (0,0,255), 5)
     centers_only = []
     for c in centers:
@@ -279,33 +279,16 @@ for i in range(NUM_IMAGES):
                 cv2.rectangle(output,(k*100,j*100),(k*100+100,j*100+100), ratio_color, -1)
                 cv2.rectangle(output,(k*100,j*100),(k*100+100,j*100+100), (0,0,0), 5)
 
-    # sets = combinations(good_contours)
-    # collinear_contours = []
-    # for set in sets:
-    #     points = []
-    #     for cnt in set:
-    #         (x,y), radius = cv2.minEnclosingCircle(cnt)
-    #         points.append((x,y))
-    #     if is_collinear(points):
-    #         for cnt in set:
-    #             # if cnt not in collinear_contours:
-    #             collinear_contours.append(cnt)
-    # 
-    # for cnt in collinear_contours:
-    #     (x,y), radius = cv2.minEnclosingCircle(cnt)
-    #     center = (x, y)
-    #     cv2.circle(not_color, (int(x),int(y)), 1, (255,0,0), 5)
-
     cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"0input.jpg"),image)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"1yuv.jpg"),yuv_image)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"2invthresh.jpg"),thresh_inverted)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"3erodilblur.jpg"),blur)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"4contours.jpg"),contour_image)
-    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"5contoursquares.jpg"),all_boxes)
+    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"5contoursquares.jpg"),all_boxes)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"6contoursquaresnoarea.jpg"),no_area)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"6contoursquaresnoareablank.jpg"),no_area_blank)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"7contoursquaresnosquare.jpg"),not_square)
-    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"8contoursquaresnocolor.jpg"),not_color)
+    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"8contoursquaresnocolor.jpg"),not_color)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"6contoursquaresmode.jpg"),mode_image)
     cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"7 output.jpg"),output)
 
