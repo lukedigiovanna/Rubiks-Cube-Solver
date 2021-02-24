@@ -7,7 +7,7 @@ import random
 
 EXECUTION_DIRECTORY = os.getcwd()
 
-IMAGE_DIRECTORY_NAME = "all rubiks images/simple_rubiks"
+IMAGE_DIRECTORY_NAME = "all rubiks images/rubiks very simple"
 IMAGE_DIRECTORY = os.path.join(EXECUTION_DIRECTORY,IMAGE_DIRECTORY_NAME)
 
 NUM_IMAGES = 6
@@ -116,7 +116,7 @@ for i in range(NUM_IMAGES):
     eroded = cv2.erode(thresh_inverted, erosion_kernel)
     dilated = cv2.dilate(eroded,dilation_kernel)
     
-    blur = cv2.GaussianBlur(dilated, (17,17), 0)
+    blur = cv2.GaussianBlur(dilated, (21,21), 0)
 
     # edges = cv2.Canny(dilated, 0, 255)
     contours, hierarchy = cv2.findContours(blur, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -131,6 +131,7 @@ for i in range(NUM_IMAGES):
     not_square = image.copy()
     not_color = image.copy()
     all_boxes = image.copy()
+    masks = np.zeros(image.shape,np.uint8)
     good_contours = []
     areas = []
     aspect_ratios = []
@@ -162,7 +163,7 @@ for i in range(NUM_IMAGES):
             # centers.append((center,cnt))
             # cv2.drawContours(no_area_blank,[box],0,(0,255,0),3)
             cv2.circle(no_area_blank, center, 3, (255,0,0), 3)
-            if abs(ratio - 1) < 0.1:
+            if abs(ratio - 1) < 10.1:
                 cv2.drawContours(not_square,[box],0,(0,255,0), 3)
                 mask = np.zeros(image_gray.shape,np.uint8)
                 cv2.drawContours(mask, [cnt], 0, 255, -1)
@@ -172,6 +173,8 @@ for i in range(NUM_IMAGES):
                 print("RAW", raw_color_label, raw_confidence, "RATIO", ratio_color_label, ratio_confidence)
                 if ratio_confidence > CONFIDENCE_THRESHOLD:
                     cv2.drawContours(not_color, [box], 0, (0,255,0), 3)
+                    cv2.drawContours(masks, [cnt], 0, ratio_color, -1)
+                    cv2.drawContours(masks, [box], 0, (0,255,0), 3)
                     ax += cx
                     ay += cy
                     good_contours.append(cnt)
@@ -282,9 +285,10 @@ for i in range(NUM_IMAGES):
     cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"0input.jpg"),image)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"1yuv.jpg"),yuv_image)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"2invthresh.jpg"),thresh_inverted)
-    # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"3erodilblur.jpg"),blur)
+    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"3erodilblur.jpg"),blur)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"4contours.jpg"),contour_image)
     cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"5contoursquares.jpg"),all_boxes)
+    cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"6masks.jpg"),masks)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"6contoursquaresnoarea.jpg"),no_area)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"6contoursquaresnoareablank.jpg"),no_area_blank)
     # cv2.imwrite(os.path.join(IMAGE_DIRECTORY,"sample_images/"+str(i)+"7contoursquaresnosquare.jpg"),not_square)
