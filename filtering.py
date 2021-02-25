@@ -48,6 +48,65 @@ def draw_box_contours(image, box_contours, color=(0,255,0), thickness=3):
         cv2.drawContours(image_copy,[cnt.box], 0, color, thickness)
     return image_copy
 
+def filterout_byArea(contours,lowerbound=1250,upperbound=35000):
+    i = 0
+    while i < len(contours): 
+        cnt = contours[i]
+        if  not (lowerbound < cnt.area < upperbound):
+            contours.remove(cnt)
+        else:
+            i += 1
+
+def filterout_bySolidity(contours,threshold=0.6):
+    i = 0
+    while i < len(contours): 
+        cnt = contours[i]
+        if  cnt.solidity < threshold:
+            contours.remove(cnt)
+        else:
+            i += 1
+
+def filterout_byAspectRatio(contours):
+    i = 0
+    while i < len(contours): 
+        cnt = contours[i]
+        if  abs(cnt.aspect_ratio - 1) > 0.25:
+            contours.remove(cnt)
+        else:
+            i += 1
+
+def filterout_byModeArea(contours, epsilon=3500):
+    areas = []
+    for cnt in contours:
+        areas.append(cnt.rect_area)
+    # calculate the floating point mode of the areas
+    mode_list = areas
+    counts = []
+    for a in mode_list:
+        for j, (b, c) in enumerate(counts):
+            if -epsilon <= a - b <= epsilon:
+                counts[j] = (b, c + 1)
+                break
+        else:
+            counts.append((a,1))
+    possible_modes = sorted(counts,key=lambda ab: (ab[1],ab[0]))
+    possible_modes.reverse()
+    print(possible_modes)
+    mode = -1
+    if len(possible_modes) > 0:
+        mode = possible_modes[0][0]
+
+    mode_contours = []
+    for j, cnt in enumerate(contours):
+        if abs(mode_list[j] - mode) <= epsilon:
+            mode_contours.append(cnt)
+
+    while len(contours) > 0:
+        contours.remove(contours[0])
+    for cnt in mode_contours:
+        contours.append(cnt)
+
+
 # represents some useful information about a given contour
 class Contour:
     def __init__(self, contour):
@@ -68,7 +127,11 @@ class Contour:
         dy2 = p3[1]-p2[1]
         s1 = math.sqrt(dx1 ** 2 + dy1 ** 2)
         s2 = math.sqrt(dx2 ** 2 + dy2 ** 2)
+        self.area = cv2.contourArea(contour)
         self.rect_area = s1 * s2
         self.aspect_ratio = s1/s2
+        hull = cv2.convexHull(contour)
+        self.hull_area = cv2.contourArea(hull)
+        self.solidity = float(self.area)/self.hull_area
 
         

@@ -8,7 +8,7 @@ from numpy.core.fromnumeric import resize
 import colorclassification
 import filtering
 
-IMAGE_DIRECTORY_NAME = "all rubiks images/rubiks very simple"
+IMAGE_DIRECTORY_NAME = "all rubiks images/rubiks4"
 EXECUTION_DIRECTORY = os.getcwd()
 
 IMAGE_DIRECTORY = os.path.join(EXECUTION_DIRECTORY,IMAGE_DIRECTORY_NAME)
@@ -45,7 +45,14 @@ for i in range(len(images)):
     raw_contour_image = filtering.draw_contours(resized_image, raw_contours)
     contours = filtering.get_contours(erodil)
 
+    filtering.filterout_byArea(contours)
+    # filtering.filterout_byAspectRatio(contours)
+    filtering.filterout_bySolidity(contours)
+    filtering.filterout_byModeArea(contours)
+
     box_contour_image = filtering.draw_box_contours(resized_image, contours)
+
+
 
     save_sample_image(raw_image, i, "input")
     save_sample_image(hsv_image, i, "hsv")

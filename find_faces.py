@@ -269,7 +269,7 @@ for i in range(NUM_IMAGES):
         row1 = sorted((centers[0],centers[1],centers[2]), key=lambda ab: ab[0][0])
         row2 = sorted((centers[3],centers[4],centers[5]), key=lambda ab: ab[0][0])
         row3 = sorted((centers[6],centers[7],centers[8]), key=lambda ab: ab[0][0])
-        rows = [row1,row2,row3]
+        rows = (row1,row2,row3)
         for j in range(3):
             r = rows[j]
             for k in range(3):
