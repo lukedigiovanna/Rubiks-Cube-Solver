@@ -115,7 +115,6 @@ for i in range(NUM_IMAGES):
 
     eroded = cv2.erode(thresh_inverted, erosion_kernel)
     dilated = cv2.dilate(eroded,dilation_kernel)
-    
     blur = cv2.GaussianBlur(dilated, (21,21), 0)
 
     # edges = cv2.Canny(dilated, 0, 255)
