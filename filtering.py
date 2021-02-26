@@ -45,7 +45,8 @@ def draw_contours(image, contours, color=(0,255,0), thickness=3):
 def draw_box_contours(image, box_contours, color=(0,255,0), thickness=3):
     image_copy = image.copy()
     for cnt in box_contours:
-        cv2.drawContours(image_copy,[cnt.box], 0, color, thickness)
+        # cv2.drawContours(image_copy,[cnt.box], 0, color, thickness)
+        cv2.ellipse(image_copy,cnt.center,cnt.axes,cnt.angle,0,360,color,thickness=thickness)
     return image_copy
 
 
@@ -75,21 +76,20 @@ def filterout_bySolidity(contours,threshold=0.6):
         else:
             i += 1
 
-def filterout_byAspectRatio(contours):
+def filterout_byAspectRatio(contours, threshold=0.25):
     i = 0
     while i < len(contours): 
         cnt = contours[i]
-        if  abs(cnt.aspect_ratio - 1) > 0.25:
+        if  abs(cnt.aspect_ratio - 1) > threshold:
             contours.remove(cnt)
         else:
             i += 1
 
-def filterout_byEccentricity(contours):
+def filterout_byEccentricity(contours, threshold=0.8):
     i = 0
     while i < len(contours): 
         cnt = contours[i]
-        print(cnt.eccentricity)
-        if  False:
+        if cnt.eccentricity < threshold:
             contours.remove(cnt)
         else:
             i += 1
@@ -152,7 +152,16 @@ class Contour:
         hull = cv2.convexHull(contour)
         self.hull_area = cv2.contourArea(hull)
         self.solidity = float(self.area)/self.hull_area
-        (x,y),(MA,ma),angle = cv2.fitEllipse(self.original_contour)
-        self.eccentricity = MA/ma
+        if len(self.original_contour) >= 5:
+            (x,y),(MA,ma),angle = cv2.fitEllipse(self.original_contour)
+            self.center = (int(x),int(y))
+            self.axes = (int(MA),int(ma))
+            self.angle = angle
+            self.eccentricity = MA/ma
+        else:
+            self.center = (0,0)
+            self.axes = (0,0)
+            self.angle = 0
+            self.eccentricity = 1
 
         

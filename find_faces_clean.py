@@ -7,7 +7,7 @@ import cv2
 # import colorclassification
 import filtering
 
-IMAGE_DIRECTORY_NAME = "all rubiks images/rubiks4nobackground"
+IMAGE_DIRECTORY_NAME = "all rubiks images/simple_rubiks"
 EXECUTION_DIRECTORY = os.getcwd()
 
 IMAGE_DIRECTORY = os.path.join(EXECUTION_DIRECTORY,IMAGE_DIRECTORY_NAME)
@@ -15,8 +15,6 @@ IMAGE_DIRECTORY = os.path.join(EXECUTION_DIRECTORY,IMAGE_DIRECTORY_NAME)
 CONFIDENCE_THRESHOLD = 0.0
 
 orders = {}
-
-
 images = []
 
 target_width = 760
@@ -43,28 +41,31 @@ for i in range(len(images)):
 
     inverted_thresholding = filtering.get_inverted_gaussian_thresholding(gray_image)
 
-    erodil = filtering.get_erodil(inverted_thresholding, 3)
-
-    raw_contours = filtering.get_raw_contours(erodil)
-    raw_contour_image = filtering.draw_contours(image, raw_contours)
-    contours = filtering.get_contours(erodil)
-
-    filtering.filterout_byArea(contours)
-    # filtering.filterout_byAspectRatio(contours)
-    # filtering.filterout_bySolidity(contours,threshold=0.7)
-    # filtering.filterout_byModeArea(contours)
-    # filtering.filterout_byEccentricity(contours)
-
-    box_contour_image = filtering.draw_box_contours(image, contours)
+    erodil = filtering.get_erodil(inverted_thresholding, 2)
 
     save_sample_image(image, i, "input")
-    # save_sample_image(hsv_image, i, "hsv")
-    # save_sample_image(inverted_thresholding, i, "invertedThresholding")
-    # save_sample_image(erodil, i, "erodil")
-    save_sample_image(raw_contour_image, i, "originalContours")
-    save_sample_image(box_contour_image, i, "originalBoxContours")
-    save_sample_image(filtering.get_contour_mask(image, contours), i, "contourMask")
+    save_sample_image(erodil, i, "erodilblur")
 
+    # raw_contours = filtering.get_raw_contours(erodil)
+    # raw_contour_image = filtering.draw_contours(image, raw_contours)
+    # contours = filtering.get_contours(erodil)
+
+    # save_sample_image(filtering.draw_box_contours(image, contours), i, "original")
+
+    # filtering.filterout_byArea(contours)
+    # save_sample_image(filtering.draw_box_contours(image, contours), i, "byArea")
+
+    # filtering.filterout_byAspectRatio(contours)
+    # save_sample_image(filtering.draw_box_contours(image, contours), i, "byAspectRatio")
+
+    # filtering.filterout_bySolidity(contours,threshold=0.7)
+    # save_sample_image(filtering.draw_box_contours(image, contours), i, "bySolidity")
+
+    # filtering.filterout_byEccentricity(contours,threshold=0.7)
+    # save_sample_image(filtering.draw_box_contours(image, contours), i, "byEccentricity")
+
+    # filtering.filterout_byModeArea(contours)
+    # save_sample_image(filtering.draw_box_contours(image, contours), i, "byModeArea")
 
 
 
