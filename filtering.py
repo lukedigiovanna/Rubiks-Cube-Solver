@@ -48,6 +48,15 @@ def draw_box_contours(image, box_contours, color=(0,255,0), thickness=3):
         cv2.drawContours(image_copy,[cnt.box], 0, color, thickness)
     return image_copy
 
+
+def get_contour_mask(image, contours, box_color=(0,255,0), box_thickness=3, fill_color=(255,0,255)):
+    blank_image = np.zeros(image.shape,np.uint8)
+    for cnt in contours:
+        cv2.drawContours(blank_image, [cnt.original_contour], 0, fill_color, -1)
+        cv2.drawContours(blank_image, [cnt.box], 0, box_color, box_thickness)
+    return blank_image
+
+# filtering methods
 def filterout_byArea(contours,lowerbound=1250,upperbound=35000):
     i = 0
     while i < len(contours): 
@@ -71,6 +80,16 @@ def filterout_byAspectRatio(contours):
     while i < len(contours): 
         cnt = contours[i]
         if  abs(cnt.aspect_ratio - 1) > 0.25:
+            contours.remove(cnt)
+        else:
+            i += 1
+
+def filterout_byEccentricity(contours):
+    i = 0
+    while i < len(contours): 
+        cnt = contours[i]
+        print(cnt.eccentricity)
+        if  False:
             contours.remove(cnt)
         else:
             i += 1
@@ -133,5 +152,7 @@ class Contour:
         hull = cv2.convexHull(contour)
         self.hull_area = cv2.contourArea(hull)
         self.solidity = float(self.area)/self.hull_area
+        (x,y),(MA,ma),angle = cv2.fitEllipse(self.original_contour)
+        self.eccentricity = MA/ma
 
         
