@@ -4,10 +4,11 @@
 
 import os
 import cv2
+import numpy as np
 # import colorclassification
 import filtering
 
-IMAGE_DIRECTORY_NAME = "all rubiks images/simple_rubiks"
+IMAGE_DIRECTORY_NAME = "all rubiks images/rubiks_corners_no_background"
 EXECUTION_DIRECTORY = os.getcwd()
 
 IMAGE_DIRECTORY = os.path.join(EXECUTION_DIRECTORY,IMAGE_DIRECTORY_NAME)
@@ -17,7 +18,7 @@ CONFIDENCE_THRESHOLD = 0.0
 orders = {}
 images = []
 
-target_width = 760
+target_width = 720
 print("Collecting images")
 possible_images = os.listdir(IMAGE_DIRECTORY)
 for possible_image_name in possible_images:
@@ -37,36 +38,29 @@ print("Beginning image processing")
 for i in range(len(images)):
     image = images[i]
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray_image = cv2.cvtColor(hsv_image, cv2.COLOR_BGR2GRAY)
 
-    inverted_thresholding = filtering.get_inverted_gaussian_thresholding(gray_image)
+    inverted_thresholding = filtering.get_inverted_gaussian_thresholding(cv2.GaussianBlur(gray_image, (51, 51), 0))
 
     erodil = filtering.get_erodil(inverted_thresholding, 2)
 
-    save_sample_image(image, i, "input")
-    save_sample_image(erodil, i, "erodilblur")
+    blur = cv2.GaussianBlur(gray_image, (25,25), 0)
+    threshold = filtering.get_inverted_gaussian_thresholding(blur)
+    erodil = filtering.get_erodil(threshold, 3)
 
-    # raw_contours = filtering.get_raw_contours(erodil)
-    # raw_contour_image = filtering.draw_contours(image, raw_contours)
-    # contours = filtering.get_contours(erodil)
+    raw_contours = filtering.get_raw_contours(erodil)
+    contours = filtering.get_contours(erodil)
 
-    # save_sample_image(filtering.draw_box_contours(image, contours), i, "original")
+    filtering.filterout_byArea(contours, lowerbound=250)
 
-    # filtering.filterout_byArea(contours)
-    # save_sample_image(filtering.draw_box_contours(image, contours), i, "byArea")
+    save_sample_image(image,i,"input")
+    save_sample_image(erodil,i,"erodil")
+    thing = filtering.draw_contours(cv2.cvtColor(erodil,cv2.COLOR_GRAY2BGR), raw_contours)
+    save_sample_image(thing,i,"contours")
+    save_sample_image(filtering.draw_box_contours(image, contours),i,"boxes")
+    save_sample_image(filtering.get_test(image, contours),i,"test")
+    save_sample_image(filtering.draw_quad_contours(image, contours),i,"quad")
+    save_sample_image(filtering.draw_ellipse_contours(image, contours),i,"ellipses")
+    save_sample_image(filtering.get_contour_mask(image, contours, overlay=thing),i,"mask")
 
-    # filtering.filterout_byAspectRatio(contours)
-    # save_sample_image(filtering.draw_box_contours(image, contours), i, "byAspectRatio")
-
-    # filtering.filterout_bySolidity(contours,threshold=0.7)
-    # save_sample_image(filtering.draw_box_contours(image, contours), i, "bySolidity")
-
-    # filtering.filterout_byEccentricity(contours,threshold=0.7)
-    # save_sample_image(filtering.draw_box_contours(image, contours), i, "byEccentricity")
-
-    # filtering.filterout_byModeArea(contours)
-    # save_sample_image(filtering.draw_box_contours(image, contours), i, "byModeArea")
-
-
-
-
+    

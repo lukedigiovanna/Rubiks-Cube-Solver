@@ -58,3 +58,4 @@ def predict(image, contour):
     mask = np.zeros(image_gray.shape,np.uint8)
     cv2.drawContours(mask, [contour], 0, 255, -1)
     mean_val = cv2.mean(image,mask=mask)
+    return predict_using_ratios(mean_val)
