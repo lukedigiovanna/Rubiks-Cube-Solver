@@ -5,7 +5,6 @@
 import os
 import cv2
 import numpy as np
-# import colorclassification
 import filtering
 
 IMAGE_DIRECTORY_NAME = "all rubiks images/rubiks_corners_no_background"
