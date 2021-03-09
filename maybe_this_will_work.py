@@ -16,16 +16,16 @@ import requests
 import urllib
 
 image = cv2.imread("all rubiks images/rubiks_corners_no_background/0.png")
-image = cv2.imread("all rubiks images/rubiks_corners/1.JPG")
+image = cv2.imread("all rubiks images/rubiks_corners/0.JPG")
 
 def remove_background(image):
-    cv2.imwrite("1.jpg", image)
+    cv2.imwrite("temp.jpg", image)
     params = (
         ('api_key', 'ak-shiny-lab-a046e44'),
     )
 
     files = {
-        'file': ('1.jpg', open('1.jpg', 'rb')),
+        'file': ('temp.jpg', open('temp.jpg', 'rb')),
     }
     response = requests.post('https://api.boring-images.ml/v1.0/transparent-net', params=params, files=files)
     url = json.loads(response.text)["result"]
@@ -36,8 +36,6 @@ def remove_background(image):
     return image
 
 image = remove_background(image)
-cv2.imwrite("noback.png",image)
-exit()
 
 target_width = 180
 
@@ -48,9 +46,11 @@ image = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
 hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 gray_image = cv2.cvtColor(hsv_image, cv2.COLOR_BGR2GRAY)
 
-threshold = cv2.adaptiveThreshold(gray_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 37, 2)
+threshold = cv2.adaptiveThreshold(gray_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 21, 2)
 dilation_kernel = np.ones((3,3))
 threshold = 255-cv2.dilate(threshold, dilation_kernel)
+
+cv2.imwrite("threshold.png",threshold)
 
 cache = []
 
@@ -62,7 +62,7 @@ class Region:
     def __init__(self, pixel_coordinates):
         global index
         self.pixel_list = np.array(pixel_coordinates)
-        if len(pixel_coordinates) < 75 or len(pixel_coordinates) > 1200:
+        if len(pixel_coordinates) < 75 or len(pixel_coordinates) > 500:
             return None
         self.leftx = self.pixel_list[:,0][self.pixel_list[:,0].argmin()]
         self.rightx = self.pixel_list[:,0][self.pixel_list[:,0].argmax()]
@@ -88,34 +88,46 @@ class Region:
                 if self.map[i][j] == 255 and (self.map[i-1][j] == 0 or self.map[i+1][j] == 0 or self.map[i][j-1] == 0 or self.map[i][j+1] == 0):
                     self.edges[i][j] = 255
                     self.contours.append((j+self.leftx,i+self.topy))
+        self.left_edge = (0, 0)
+        for i in range(0, map_height):
+            if self.map[i][0] == 255:
+                self.left_edge = (0, i)
+                break
+        self.right_edge = (0, 0)
+        for i in range(0, map_height):
+            if self.map[i][map_width-1] == 255:
+                self.right_edge = (map_width-1, i)
+                break
+        self.slope = (self.right_edge[1] - self.left_edge[1])/(self.right_edge[0] - self.left_edge[0])
+        
 
         # convex detection
         self.is_convex = True
-        for i in range(0, map_height):
-            edge_count = 0
-            if self.map[i][0] == 255:
-                edge_count+=1
-            for j in range(0, map_width-1):
-                if self.map[i][j] == 0 and self.map[i][j+1] == 255:
-                    edge_count += 1
-                    if edge_count > 1:
-                        self.is_convex = False
-                        break
-            if not self.is_convex:
-                break # no need to keep checking if we already found out we are not convex
-        if self.is_convex:
-            for j in range(0, map_width):
-                edge_count = 0
-                if self.map[0][j] == 255:
-                    edge_count += 1
-                for i in range(0, map_height-1):
-                    if self.map[i][j] == 0 and self.map[i+1][j] == 255:
-                        edge_count += 1
-                        if edge_count > 1:
-                            self.is_convex = False
-                            break
-                if not self.is_convex:
-                    break
+        # for i in range(0, map_height):
+        #     edge_count = 0
+        #     if self.map[i][0] == 255:
+        #         edge_count+=1
+        #     for j in range(0, map_width-1):
+        #         if self.map[i][j] == 0 and self.map[i][j+1] == 255:
+        #             edge_count += 1
+        #             if edge_count > 1:
+        #                 self.is_convex = False
+        #                 break
+        #     if not self.is_convex:
+        #         break # no need to keep checking if we already found out we are not convex
+        # if self.is_convex:
+        #     for j in range(0, map_width):
+        #         edge_count = 0
+        #         if self.map[0][j] == 255:
+        #             edge_count += 1
+        #         for i in range(0, map_height-1):
+        #             if self.map[i][j] == 0 and self.map[i+1][j] == 255:
+        #                 edge_count += 1
+        #                 if edge_count > 1:
+        #                     self.is_convex = False
+        #                     break
+        #         if not self.is_convex:
+        #             break
 
         cv2.imwrite("test/region"+str(index)+".png",self.map)
         cv2.imwrite("test/edges"+str(index)+".png",self.edges)
@@ -170,19 +182,23 @@ while row_i < height:
         region = []
         find_region(col_i, row_i, region)
         region = Region(region)
-        if len(region.pixel_list) < 75 or len(region.pixel_list) > 1200 or region.is_touching_edge(image) or not region.is_convex:
+        if len(region.pixel_list) < 75 or len(region.pixel_list) > 500 or region.is_touching_edge(image) or not region.is_convex:
             col_i += 1
             continue
         color = region.get_predicted_color()
         # color = (random.randint(0,255),random.randint(0,255),random.randint(0,255))
+        outline_color = (255,0,0)
+        if region.slope < -0.25:
+            outline_color = (0,255,0)
+        elif region.slope > 0.25:
+            outline_color = (0,0,255)
         for p in region.pixel_list:
             blank[p[1]][p[0]] = color
-        cv2.rectangle(blank,(region.leftx,region.topy),(region.rightx,region.bottomy),(0,255,0),thickness=1)
+        cv2.rectangle(blank,(region.leftx,region.topy),(region.rightx,region.bottomy),outline_color,thickness=1)
         for cnt_point in region.contours:
             cv2.circle(image, cnt_point, 0, (0,255,0), thickness=1)
         col_i += 1
     row_i += 1
 
-cv2.imwrite("threshold.png",threshold)
 cv2.imwrite("regions.png", blank)
 cv2.imwrite("contours.png", image)
