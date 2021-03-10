@@ -9,14 +9,13 @@ Objective of this attempt:
 
 import cv2
 import numpy as np
-import random
 import colorclassification
 import json
 import requests
 import urllib
 
 image = cv2.imread("all rubiks images/rubiks_corners_no_background/0.png")
-image = cv2.imread("all rubiks images/rubiks_corners/0.JPG")
+image = cv2.imread("all rubiks images/rubiks_corners_2/1.JPG")
 
 def remove_background(image):
     cv2.imwrite("temp.jpg", image)
@@ -46,9 +45,24 @@ image = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
 hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 gray_image = cv2.cvtColor(hsv_image, cv2.COLOR_BGR2GRAY)
 
-threshold = cv2.adaptiveThreshold(gray_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 21, 2)
+# for i in range(3,51,2):
+threshold = cv2.adaptiveThreshold(gray_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 13, 2)
 dilation_kernel = np.ones((3,3))
 threshold = 255-cv2.dilate(threshold, dilation_kernel)
+    # cv2.imwrite("threshold"+str(i)+".png",threshold)
+cv2.imwrite("yuv.png", cv2.cvtColor(image, cv2.COLOR_BGR2YUV))
+
+for i in range(dim[1]):
+    for j in range(dim[0]):
+        if threshold[i][j] == 0:
+            break
+        else:
+            threshold[i][j] = 0
+    for j in range(dim[0]-1, -1, -1):
+        if threshold[i][j] == 0:
+            break
+        else:
+            threshold[i][j] = 0
 
 cv2.imwrite("threshold.png",threshold)
 
@@ -62,7 +76,7 @@ class Region:
     def __init__(self, pixel_coordinates):
         global index
         self.pixel_list = np.array(pixel_coordinates)
-        if len(pixel_coordinates) < 75 or len(pixel_coordinates) > 500:
+        if len(pixel_coordinates) < 50 or len(pixel_coordinates) > 500:
             return None
         self.leftx = self.pixel_list[:,0][self.pixel_list[:,0].argmin()]
         self.rightx = self.pixel_list[:,0][self.pixel_list[:,0].argmax()]
@@ -75,6 +89,7 @@ class Region:
             for j in range(self.leftx,self.rightx+map_width):
                 if (j,i) in pixel_coordinates:
                     self.map[i-self.topy][j-self.leftx] = 255
+        self.center = (self.leftx + int(map_width/2), self.topy + int(map_height/2))
         self.edges = np.zeros(self.map.shape, np.uint8)
         self.contours = []
         # make the edge map and check for convexity
@@ -88,18 +103,22 @@ class Region:
                 if self.map[i][j] == 255 and (self.map[i-1][j] == 0 or self.map[i+1][j] == 0 or self.map[i][j-1] == 0 or self.map[i][j+1] == 0):
                     self.edges[i][j] = 255
                     self.contours.append((j+self.leftx,i+self.topy))
-        self.left_edge = (0, 0)
-        for i in range(0, map_height):
-            if self.map[i][0] == 255:
-                self.left_edge = (0, i)
-                break
-        self.right_edge = (0, 0)
-        for i in range(0, map_height):
-            if self.map[i][map_width-1] == 255:
-                self.right_edge = (map_width-1, i)
-                break
-        self.slope = (self.right_edge[1] - self.left_edge[1])/(self.right_edge[0] - self.left_edge[0])
-        
+
+        ys = []
+        for j in range(map_width):
+            for i in range(map_height):
+                if self.map[i][j] == 255:
+                    ys.append(i)
+                    break
+        self.total_grade = 0
+        for i in range(map_width-1):
+            if ys[i] < ys[i+1]:
+                self.total_grade += 1
+            elif ys[i] > ys[i+1]:
+                self.total_grade -= 1
+
+        mean = average_color(region)
+        self.color_label, self.color, confidence = colorclassification.predict_using_ratios(mean)
 
         # convex detection
         self.is_convex = True
@@ -176,29 +195,114 @@ def predict_color(region):
 
 blank = np.zeros(image.shape, np.uint8)
 
+top_face_regions = []
+left_face_regions = []
+right_face_regions = []
+
 while row_i < height:
     col_i = 0
     while col_i < width:
         region = []
         find_region(col_i, row_i, region)
         region = Region(region)
-        if len(region.pixel_list) < 75 or len(region.pixel_list) > 500 or region.is_touching_edge(image) or not region.is_convex:
+        if len(region.pixel_list) < 50 or len(region.pixel_list) > 500:
             col_i += 1
             continue
+        
         color = region.get_predicted_color()
-        # color = (random.randint(0,255),random.randint(0,255),random.randint(0,255))
+
         outline_color = (255,0,0)
-        if region.slope < -0.25:
+        if region.total_grade < -2:
             outline_color = (0,255,0)
-        elif region.slope > 0.25:
+            right_face_regions.append(region)
+        elif region.total_grade > 2:
             outline_color = (0,0,255)
+            left_face_regions.append(region)
+        else:
+            top_face_regions.append(region)
+
         for p in region.pixel_list:
             blank[p[1]][p[0]] = color
-        cv2.rectangle(blank,(region.leftx,region.topy),(region.rightx,region.bottomy),outline_color,thickness=1)
-        for cnt_point in region.contours:
-            cv2.circle(image, cnt_point, 0, (0,255,0), thickness=1)
+        # cv2.rectangle(blank,(region.leftx,region.topy),(region.rightx,region.bottomy),outline_color,thickness=1)
+        
+        cv2.circle(blank, region.center, 1, (255,255,255), thickness=2)
+        
         col_i += 1
     row_i += 1
 
-cv2.imwrite("regions.png", blank)
-cv2.imwrite("contours.png", image)
+
+cv2.imwrite("regions.png",blank)
+
+
+# take faces and put identified sides into simple data structure
+top_face = [['white','white','white'],['white','white','white'],['white','white','white']]
+left_face = [['white','white','white'],['white','white','white'],['white','white','white']]
+right_face = [['white','white','white'],['white','white','white'],['white','white','white']]
+
+def print_face(face):
+    for row in face:
+        print(row)
+
+color_dict = {
+    "red": (0,0,255),
+    "orange": (0,125,255),
+    "white": (255, 255, 255),
+    "yellow": (0,255,255),
+    "blue":(255,0,0),
+    "green":(0,255,0)
+}
+def save_face_image(image_name, face_labels):
+    output = np.zeros([300,300,3],np.uint8)
+    for i in range(3):
+        for j in range(3):
+            cv2.rectangle(output, (j * 100, i * 100), (j * 100 + 100, i * 100 + 100), color_dict[face_labels[i][j]], -1)
+            cv2.rectangle(output, (j * 100, i * 100), (j * 100 + 100, i * 100 + 100), (0,0,0), 5)
+    cv2.imwrite(image_name+".png", output)
+
+top_face_regions.sort(key=lambda a: a.center[1])
+top_face[0][0] = top_face_regions[0].color_label
+second_row = [top_face_regions[1], top_face_regions[2]]
+second_row.sort(key=lambda a: a.center[0])
+top_face[0][1] = second_row[1].color_label
+top_face[1][0] = second_row[0].color_label
+third_row = [top_face_regions[3],top_face_regions[4],top_face_regions[5]]
+third_row.sort(key=lambda a: a.center[0])
+top_face[2][0] = third_row[0].color_label
+top_face[1][1] = third_row[1].color_label
+top_face[0][2] = third_row[2].color_label
+fourth_row = [top_face_regions[6],top_face_regions[7]]
+fourth_row.sort(key=lambda a: a.center[0])
+top_face[2][1] = fourth_row[0].color_label
+top_face[1][2] = fourth_row[1].color_label
+top_face[2][2] = top_face_regions[8].color_label
+print_face(top_face)
+
+left_face_regions.sort(key=lambda a: a.center[0])
+first_col = [left_face_regions[0],left_face_regions[1],left_face_regions[2]]
+first_col.sort(key=lambda a: a.center[1])
+second_col = [left_face_regions[3],left_face_regions[4],left_face_regions[5]]
+second_col.sort(key=lambda a: a.center[1])
+third_col = [left_face_regions[6],left_face_regions[7],left_face_regions[8]]
+third_col.sort(key=lambda a: a.center[1])
+for i in range(3):
+    left_face[i][0] = first_col[i].color_label
+    left_face[i][1] = second_col[i].color_label
+    left_face[i][2] = third_col[i].color_label
+print_face(left_face)
+
+right_face_regions.sort(key=lambda a: a.center[0])
+first_col = [right_face_regions[0],right_face_regions[1],right_face_regions[2]]
+first_col.sort(key=lambda a: a.center[1])
+second_col = [right_face_regions[3],right_face_regions[4],right_face_regions[5]]
+second_col.sort(key=lambda a: a.center[1])
+third_col = [right_face_regions[6],right_face_regions[7],right_face_regions[8]]
+third_col.sort(key=lambda a: a.center[1])
+for i in range(3):
+    right_face[i][0] = first_col[i].color_label
+    right_face[i][1] = second_col[i].color_label
+    right_face[i][2] = third_col[i].color_label
+print_face(right_face)
+
+save_face_image("top", top_face)
+save_face_image("left", left_face)
+save_face_image("right", right_face)

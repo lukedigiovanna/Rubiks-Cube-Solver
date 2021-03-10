@@ -16,7 +16,7 @@ def load_data(filename):
 
 EXECUTION_PATH = os.getcwd()
 
-X, y = load_data(os.path.join(EXECUTION_PATH,"color_averages.csv"))
+X, y = load_data(os.path.join(EXECUTION_PATH,"color_ratio_averages_new.csv"))
 
 # one hot encode the color values
 ohe = OneHotEncoder()
@@ -37,5 +37,5 @@ model.fit(X_train,y_train,epochs=100,batch_size=10)
 _, accuracy = model.evaluate(X_test,y_test)
 print(accuracy*100)
 
-model.save("colorclassification.h5")
+model.save("colorratioclassification_new.h5")
 

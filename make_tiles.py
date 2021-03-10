@@ -3,9 +3,9 @@ import numpy as np
 import math
 import cv2
 
-for i in range(100,150):
+for i in range(0,28):
     EXECUTION_PATH = os.getcwd()
-    IMAGE_PATH = "all_rubiks/"+str(i)+".jpg"
+    IMAGE_PATH = "all rubiks images/for_tiles/"+str(i)+".jpg"
     FULL_IMAGE_PATH = os.path.join(EXECUTION_PATH,IMAGE_PATH)
 
     # process the image
@@ -77,6 +77,6 @@ for i in range(100,150):
         M = cv2.getPerspectiveTransform(pts1,pts2)
         dst = cv2.warpPerspective(image, M, (100,100))
 
-        cv2.imwrite(os.path.join(EXECUTION_PATH,"tiles/"+str(i)+"_"+str(tile_index)+".jpg"),dst)
+        cv2.imwrite(os.path.join(EXECUTION_PATH,"new_tiles/"+str(i)+"_"+str(tile_index)+".jpg"),dst)
         tile_index+=1
 

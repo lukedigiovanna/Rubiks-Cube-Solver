@@ -10,7 +10,7 @@ CONFIDENCE_THRESHOLD = 0.0
 
 # load color classification model
 color_model = keras.models.load_model(os.path.join(EXECUTION_DIRECTORY,"colorclassification.h5"))
-color_ratio_model = keras.models.load_model(os.path.join(EXECUTION_DIRECTORY,"colorratioclassification.h5"))
+color_ratio_model = keras.models.load_model(os.path.join(EXECUTION_DIRECTORY,"colorratioclassification_new.h5"))
 
 # stores the class labels respective to the model prediction output
 color_labels = ('blue','green','orange','red','white','yellow')
