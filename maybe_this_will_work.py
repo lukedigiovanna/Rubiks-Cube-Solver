@@ -15,7 +15,7 @@ import requests
 import urllib
 
 image = cv2.imread("all rubiks images/rubiks_corners_no_background/0.png")
-image = cv2.imread("all rubiks images/rubiks_corners_2/1.JPG")
+image = cv2.imread("all rubiks images/rubiks_corners_3/0.JPG")
 
 def remove_background(image):
     cv2.imwrite("temp.jpg", image)
@@ -117,7 +117,7 @@ class Region:
             elif ys[i] > ys[i+1]:
                 self.total_grade -= 1
 
-        mean = average_color(region)
+        mean = average_color(self.pixel_list)
         self.color_label, self.color, confidence = colorclassification.predict_using_ratios(mean)
 
         # convex detection
@@ -212,10 +212,10 @@ while row_i < height:
         color = region.get_predicted_color()
 
         outline_color = (255,0,0)
-        if region.total_grade < -2:
+        if region.total_grade <= -5:
             outline_color = (0,255,0)
             right_face_regions.append(region)
-        elif region.total_grade > 2:
+        elif region.total_grade >= 5:
             outline_color = (0,0,255)
             left_face_regions.append(region)
         else:
@@ -223,7 +223,7 @@ while row_i < height:
 
         for p in region.pixel_list:
             blank[p[1]][p[0]] = color
-        # cv2.rectangle(blank,(region.leftx,region.topy),(region.rightx,region.bottomy),outline_color,thickness=1)
+        cv2.rectangle(blank,(region.leftx,region.topy),(region.rightx,region.bottomy),outline_color,thickness=1)
         
         cv2.circle(blank, region.center, 1, (255,255,255), thickness=2)
         
