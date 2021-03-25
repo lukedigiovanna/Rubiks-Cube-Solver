@@ -16,7 +16,7 @@ def load_data(filename):
 
 EXECUTION_PATH = os.getcwd()
 
-X, y = load_data(os.path.join(EXECUTION_PATH,"color_ratio_averages_new.csv"))
+X, y = load_data(os.path.join(EXECUTION_PATH,"color_ratio_averages.csv"))
 
 # one hot encode the color values
 ohe = OneHotEncoder()

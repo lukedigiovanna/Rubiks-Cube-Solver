@@ -44,10 +44,12 @@ def remove_background(filepath):
 
 class Image:
     def __init__(self, filepath):
+        self.original_image = cv2.imread(filepath)
         self.image = remove_background(filepath)
         aspect_ratio = self.image.shape[1]/self.image.shape[0] # w/h
         dim = (int(target_width),int(target_width/aspect_ratio))
         self.image = cv2.resize(self.image, dim, interpolation = cv2.INTER_AREA)
+        self.original_image = cv2.resize(self.original_image, dim, interpolation = cv2.INTER_AREA)
 
         # colorscale the image for filtering
         hsv_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
@@ -83,6 +85,7 @@ class Image:
         self.cache = []
 
         self.mask = np.zeros(self.image.shape, np.uint8)
+        self.contour_image = self.original_image.copy()
 
         row_i = 0
         while row_i < self.height:
@@ -109,7 +112,10 @@ class Image:
                     self.mask[p[1]][p[0]] = region.color
                 cv2.rectangle(self.mask,(region.leftx,region.topy),(region.rightx,region.bottomy),outline_color,thickness=1)
                 
-                cv2.circle(self.mask, region.center, 1, (255,255,255), thickness=2)
+                # cv2.circle(self.mask, region.center, 1, (255,255,255), thickness=2)
+
+                for p in region.contours:
+                    self.contour_image[p[1]][p[0]] = (0,255,0)
 
                 col_i += 1
             row_i += 1
