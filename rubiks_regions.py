@@ -98,24 +98,15 @@ class Image:
                     col_i += 1
                     continue
                 self.regions.append(region)
-                outline_color = (255,0,0)
                 if region.total_grade <= -5:
-                    outline_color = (0,255,0)
                     self.right_face_regions.append(region)
                 elif region.total_grade >= 5:
-                    outline_color = (0,0,255)
                     self.left_face_regions.append(region)
                 else:
                     self.top_face_regions.append(region)
-
-                for p in region.pixel_list:
-                    self.mask[p[1]][p[0]] = region.color
-                cv2.rectangle(self.mask,(region.leftx,region.topy),(region.rightx,region.bottomy),outline_color,thickness=1)
                 
                 # cv2.circle(self.mask, region.center, 1, (255,255,255), thickness=2)
 
-                for p in region.contours:
-                    self.contour_image[p[1]][p[0]] = (0,255,0)
 
                 col_i += 1
             row_i += 1
@@ -123,7 +114,52 @@ class Image:
         # self.top_face = [['white','white','white'],['white','white','white'],['white','white','white']]
         # self.left_face = [['white','white','white'],['white','white','white'],['white','white','white']]
         # self.right_face = [['white','white','white'],['white','white','white'],['white','white','white']]
-        # self.top_face_regions.sort(key=lambda a: a.center[1])
+        # sort the row by the y positions of its centers
+        self.top_face_regions.sort(key=lambda a: a.center[1])
+        # check if there are already exactly 9 regions
+        if len(self.top_face_regions) < 9:
+            # sort into groups of rows
+            rows = [[self.top_face_regions[0]]] # 2d list
+            r_ind = 0
+            for i in range(1, len(self.top_face_regions)):
+                prev_y = self.top_face_regions[i - 1].center[1]
+                this_y = self.top_face_regions[i].center[1]
+                if abs(this_y - prev_y) < 5:
+                    rows[r_ind].append(self.top_face_regions[i])
+                else:
+                    rows.append([self.top_face_regions[i]])
+                    r_ind += 1
+            for r in rows:
+                print(len(r))
+            if len(rows) == 5:
+                # get the x center of the first row
+                x_center = rows[0][0].center[0]
+                if len(rows[1]) == 1:
+                    x = rows[1][0].center[0]
+                    if x < x_center:
+                        # fill to the right
+                        pass
+                    else:
+                        # fill to  the left
+                        pass
+                    pass
+                if len(rows[2]) != 3:
+                    # fix
+                    pass
+                if len(rows[3]) == 1:
+                    x = rows[3][0].center[0]
+                    if x < x_center:
+                        # fill to the right
+                        pass
+                    else:
+                        print("Filled a tile in the top face")
+                        copy = rows[3][0].get_copy(x_center - (x - x_center), rows[3][0].center[1])
+                        self.regions.append(copy)
+                    pass
+            else:
+                print("Unsupported condition occurred: Entire horizontal rows missing in detection")
+        else:
+            print("Unsupported condition occurred: Too many tiles detected as the top face")
         # self.top_face[0][0] = self.top_face_regions[0].color_label
         # second_row = [self.top_face_regions[1], self.top_face_regions[2]]
         # second_row.sort(key=lambda a: a.center[0])
@@ -164,6 +200,20 @@ class Image:
         #     self.right_face[i][1] = second_col[i].color_label
         #     self.right_face[i][2] = third_col[i].color_label   
 
+        for region in self.regions:
+            outline_color = (255,0,0)
+            if region.total_grade <= -5:
+                outline_color = (0,255,0)
+            elif region.total_grade >= 5:
+                outline_color = (0,0,255)
+
+            for p in region.pixel_list:
+                self.mask[p[1]][p[0]] = region.color
+            cv2.rectangle(self.mask,(region.leftx,region.topy),(region.rightx,region.bottomy),outline_color,thickness=1)
+
+            for p in region.contours:
+                    self.contour_image[p[1]][p[0]] = (0,255,0)
+
     # returns a list of the pixel coordinates that make up the region
     def find_region(self, x, y, region, count=0):
         point = (x, y)
@@ -189,7 +239,9 @@ class Image:
 
         
 class Region:
-    def __init__(self, image, pixel_coordinates):
+    def __init__(self, image, pixel_coordinates, blank=False):
+        if blank:
+            return
         self.pixel_list = np.array(pixel_coordinates)
         if len(pixel_coordinates) < 50 or len(pixel_coordinates) > 500:
             return None
@@ -243,4 +295,24 @@ class Region:
 
     def is_touching_edge(self, image):
         return self.leftx == 0 or self.rightx == image.shape[1] - 1 or self.topy == 0 or self.bottomy == image.shape[0] - 1
+
+    def get_copy(self, x, y):
+        copy = Region(0,0,blank=True)
+        copy.map = self.map
+        copy.pixel_list = []
+        for c in self.pixel_list:
+            copy.pixel_list.append((x + c[0] - self.center[0], y + c[1] - self.center[1]))
+        copy.pixel_list = np.array(copy.pixel_list)
+        copy.leftx = self.leftx
+        copy.rightx = self.rightx
+        copy.topy = self.topy
+        copy.bottomy = self.bottomy
+        copy.color = (255,0,255)
+        copy.edges = self.edges
+        copy.contours = self.contours
+        copy.color_label = "a copy!"
+        copy.total_grade = self.total_grade
+        copy.center = (x, y)
+        return copy
+
 
