@@ -1,5 +1,5 @@
 from rubiks_regions import *
-from rubik_solver import utils
+#from rubik_solver import utils
 
 # print(utils._check_valid_cube("OGWBOOOOGYWWOBBWBGBWYYYROROGRBYGBRGRBWBOWYYYGWGYRRWRGR"))
 # utils.pprint("OGWBOOOOGYWWOBBWBGBWYYYROROGRBYGBRGRBWBOWYYYGWGYRRWRGR".lowercase())
@@ -12,7 +12,23 @@ def color_tile(x, y, letter):
     cv2.rectangle(cube_image, (x * 100, y * 100), (x * 100 + 100, y * 100 + 100), colors[letter], -1)
     cv2.rectangle(cube_image, (x * 100, y * 100), (x * 100 + 100, y * 100 + 100), (0,0,0), 5)
 
-dp = "all rubiks images/testing dataset/"
+dp = "all rubiks images/various lighting dataset/"
+subsets = ["dim","flash","lamp","sunlight","windowed"]
+counts = [11, 8, 3, 4, 7]
+total_count = sum(counts)
+
+for i in range(len(subsets)):
+    fdp = dp + subsets[i] + "/"
+    print(fdp)
+    for j in range(counts[i]):
+        img = Image(fdp+str(j)+".JPG")
+        cv2.imwrite(fdp+"out/"+str(j)+"img.png",img.image)
+        cv2.imwrite(fdp+"out/"+str(j)+"thresh.png",img.threshold)
+        cv2.imwrite(fdp+"out/"+str(j)+"mask.png",img.mask)
+        print(str(i * sum(counts[:i]) + j)+"/"+str(total_count))
+
+
+exit()
 
 for j in range(7):
     one = Image(dp+str(j)+"0.JPG")

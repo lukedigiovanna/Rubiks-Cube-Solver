@@ -11,8 +11,8 @@ from shapely.geometry import Polygon
 #plt.imshow(image)
 
 missing = (134, 54)
-X = np.array([44, 60, 83, 68, 87, 110, 90, 109, 134])
-Y = np.array([53, 62, 76, 43, 53, 64, 35, 44, 54])
+X = np.array([60, 83, 68, 87, 110, 90, 109, 134])
+Y = np.array([62, 76, 43, 53, 64, 35,  44, 54])
 #X = np.array([31, 48, 68, 37, 53, 72, 42, 57])
 #Y = np.array([69, 82, 97, 96, 110, 124, 118, 132])
 def find_outlier(corners):
@@ -43,20 +43,26 @@ def find_outlier(corners):
 
     a = list(zip(a[0], a[1]))
     b = list(zip(b[0], b[1]))
-    point = []
+    print(a)
+    print(b)
+    point = [0,0]
     ref0 = []
     ref1 = []
     if a[0] in b:
         point = a[0]
         ref0 = a[1]
         ref1 = b[(b.index(point)+1)%2]
-        print("this one worked")
     elif a[1] in b:
         point = a[1]
         ref0 = a[0]
         ref1 = b[(b.index(point)+1)%2]
-        print("this one worked")
     corners = corners.tolist()
+    other_point = []
+    for c in corners:
+        if point[0] != c[0] and point[0] != ref0[0] and point[0] != ref1[0]:
+            other_point = c
+            break
+    print([point,ref0,ref1,other_point])
     print(corners)
 
     return point, dist_list
@@ -117,8 +123,8 @@ def four_point_transform (transform, pts):
     warped = cv2.warpPerspective (transform, M, (maxWidth, maxHeight))
 
     return warped
-    cv2_imshow(fileName)
-    cv2_imshow(warped) 
+    # cv2_imshow(fileName)
+    # cv2_imshow(warped) 
 
 
 def get_slope(points):
@@ -130,9 +136,12 @@ point_list = np.array(list(zip(X,Y)))
 corners = order_points(np.array(list(zip(X,Y))))
 print(corners)
 
-test = find_outlier(corners)[1]
+outlier = find_outlier(corners)
+test = outlier[1]
 for i in test:
 	print(get_slope(i[1]))
+print(outlier[0])
 
 plt.scatter(corners[:,0], corners[:,1], c="blue")
+plt.scatter([outlier[0][0]],[outlier[0][1]])
 plt.show()
